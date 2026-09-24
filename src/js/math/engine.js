@@ -9,9 +9,37 @@ import * as S from './sym.js';
 import * as C from './cas.js';
 import * as D from './dist.js';
 import { COMMANDS, COMMAND_IMPL } from './commands.js';
+import { CATALOG } from './catalog.js';
 import { fmt, fmtFloat } from './format.js';
 
 export const settings = C.settings; // { angle: 'RAD' | 'DEG' | 'GRAD' }
+
+/**
+ * Names the Reference Guide documents. A call to one of these that this build
+ * has not implemented must say so rather than echoing back unevaluated -- an
+ * unevaluated det(...) reads like a result and is easy to copy down by mistake.
+ */
+const CATALOG_NAMES = new Set(CATALOG.map((e) => e.name.toLowerCase()));
+
+// Statement keywords that cannot sensibly be variable names, so seeing one
+// bare means the user wanted the command.
+const KEYWORDS = new Set([
+  'define', 'func', 'endfunc', 'prgm', 'endprgm', 'local',
+  'if', 'then', 'elseif', 'else', 'endif',
+  'for', 'endfor', 'while', 'endwhile', 'loop', 'endloop',
+  'try', 'endtry', 'clrerr', 'passerr',
+  'return', 'cycle', 'exit', 'goto', 'lbl', 'stop',
+  'disp', 'dispat', 'request', 'requeststr', 'wait', 'pause',
+]);
+
+const notBuilt = (name) =>
+  new Error(`${name}: in the catalog, not implemented in this build`);
+
+/** Does this build actually compute `name`? Used by the catalog browser too. */
+export function isImplemented(name) {
+  const low = String(name).toLowerCase();
+  return Boolean(FN[name] ?? FN[low] ?? COMMAND_IMPL[low]);
+}
 
 /** User variables, cleared by ClearAZ / DelVar. */
 export const vars = new Map();
@@ -212,6 +240,7 @@ function build(node) {
 
     case 'var': {
       const name = node.name;
+      if (KEYWORDS.has(name.toLowerCase()) && !vars.has(name)) throw notBuilt(name);
       if (name === 'ans') {
         if (!lastAns) throw new Error('No previous answer');
         return lastAns;
@@ -249,7 +278,7 @@ function build(node) {
 
     case 'cmd': {
       const fn = COMMAND_IMPL[node.name.toLowerCase()];
-      if (!fn) throw new Error(`"${node.name}" is not defined`);
+      if (!fn) throw notBuilt(node.name);
       return runCommand(fn, node.args.map(build));
     }
 
@@ -258,7 +287,9 @@ function build(node) {
       const lower = name.toLowerCase();
       const fn = FN[name] ?? FN[lower];
       if (fn) return fn(node.args.map(build), node);
-      // an undefined name applied to arguments stays symbolic, like f(x)
+      // A documented command we have not built must say so. Anything else is
+      // treated as a user function and stays symbolic, which is correct.
+      if (CATALOG_NAMES.has(lower)) throw notBuilt(name);
       return { k: 'fn', name, args: node.args.map(build) };
     }
 

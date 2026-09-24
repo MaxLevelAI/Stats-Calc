@@ -6,16 +6,23 @@
 
 import { setModal, clearModal, refresh } from './screen.js';
 import { CATALOG } from './math/catalog.js';
-import { vars } from './math/engine.js';
+import { vars, isImplemented } from './math/engine.js';
 
 /* ============================== catalog ============================== */
+
+// Mark each entry once, so the list can show what this build actually computes.
+const MARKED = CATALOG.map((e) => ({ ...e, ok: isImplemented(e.name) }));
+const WORKING = MARKED.filter((e) => e.ok).length;
 
 export function openCatalog(onPick) {
   let filter = '';
   let sel = 0;
-  const matches = () => (filter
-    ? CATALOG.filter((e) => e.name.toLowerCase().startsWith(filter.toLowerCase()))
-    : CATALOG);
+  let onlyWorking = false;
+  const matches = () => {
+    let list = onlyWorking ? MARKED.filter((e) => e.ok) : MARKED;
+    if (filter) list = list.filter((e) => e.name.toLowerCase().startsWith(filter.toLowerCase()));
+    return list;
+  };
 
   setModal({
     id: 'catalog',
@@ -28,16 +35,19 @@ export function openCatalog(onPick) {
 
       host.innerHTML =
         '<div class="pl-panel">' +
-        `<div class="pl-title">Catalog<span class="pl-count">${list.length}</span></div>` +
-        `<div class="pl-filter">${filter ? esc(filter) : '<span class="pl-dim">type to jump</span>'}</div>` +
+        `<div class="pl-title">Catalog<span class="pl-count">${list.length}${onlyWorking ? '' : ` of ${MARKED.length}`}</span></div>` +
+        `<div class="pl-filter">${filter ? esc(filter) : '<span class="pl-dim">type to jump · tab: working only</span>'}</div>` +
         '<div class="pl-list">' +
         (list.length
           ? view.map((e, i) =>
-            `<div class="pl-row${base + i === sel ? ' sel' : ''}" data-i="${base + i}">` +
-            `<span class="pl-name">${esc(e.name)}</span></div>`).join('')
+            `<div class="pl-row${base + i === sel ? ' sel' : ''}${e.ok ? '' : ' off'}" data-i="${base + i}">` +
+            `<span class="pl-name">${esc(e.name)}</span>` +
+            (e.ok ? '' : '<span class="pl-tag">not built</span>') +
+            '</div>').join('')
           : '<div class="pl-empty">no match</div>') +
         '</div>' +
-        `<div class="pl-sig">${list[sel] ? esc(list[sel].sig) : ''}</div>` +
+        `<div class="pl-sig">${list[sel] ? esc(list[sel].sig) : ''}` +
+        `<span class="pl-working">${WORKING} of ${MARKED.length} work</span></div>` +
         '</div>';
 
       host.addEventListener('mousedown', (ev) => {
@@ -56,6 +66,7 @@ export function openCatalog(onPick) {
       if (id === 'up') { sel = Math.max(sel - 1, 0); refresh(); return true; }
       if (id === 'enter' || id === 'click') return choose();
       if (id === 'del') { filter = filter.slice(0, -1); sel = 0; refresh(); return true; }
+      if (id === 'tab') { onlyWorking = !onlyWorking; sel = 0; refresh(); return true; }
       if (def?.letter) { filter += def.letter.toLowerCase(); sel = 0; refresh(); return true; }
       return true;
     },

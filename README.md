@@ -77,6 +77,42 @@ research/             TI's specification PDFs and extracted text
 build/serve.mjs       dev server
 ```
 
+## What works, and what doesn't
+
+**93 of the 289 commands** in TI's CAS Reference Guide are implemented. The
+rest are listed in the Catalog but marked **not built**, and calling one says
+so rather than quietly echoing the expression back:
+
+```
+det(5)   ->   det: in the catalog, not implemented in this build
+```
+
+Press tab in the Catalog to list only the commands that work.
+
+Complete and usable today:
+
+- the CAS core: exact arithmetic, radicals, exact trig, expand, factor, solve,
+  zeros, derivative, integral, limit, Taylor
+- **all of AP Statistics**: 18 distributions, OneVar/TwoVar, 9 regressions,
+  7 confidence intervals, 11 hypothesis tests, and the wizards for them
+- six applications, the document model, saving, and Settings
+
+Not built:
+
+| | |
+|---|---|
+| Data Collection | the whole application (needs physical sensors) |
+| Matrix & Vector | 28 commands -- `det`, `rref`, eigenvalues, decompositions |
+| Finance | 21 commands -- TVM, amortization, cash flows |
+| Programming | Program Editor, Libraries, `If`/`For`/`While`/`Func` |
+| Graphs | only `f(x)=`; no parametric, polar, sequence, diff-eq or conics |
+| 3D Graphs | not started |
+| Geometry | Locus, Compass, Measurement Transfer, Ellipse, Parabola |
+| Elsewhere | split-screen pages, undo/redo, sliders, text objects, images, chemical equation boxes |
+
+Menu submenus marked `RECONSTRUCTED` in the source have the right items but an
+ordering inferred where TI did not publish one.
+
 ## Status
 
 | Area | State |

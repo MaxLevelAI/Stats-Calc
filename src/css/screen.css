@@ -1116,3 +1116,15 @@
   cursor: pointer;
 }
 .sym-cell.sel { background: #2996bd; color: #fff; }
+
+/* catalog entries this build does not compute */
+.pl-row.off { color: #9aa0a6; }
+.pl-row.off.sel { background: #7a8b93; color: #eef3f5; }
+.pl-tag {
+  float: right;
+  font-size: 8px;
+  color: #b06a6a;
+  padding-left: 6px;
+}
+.pl-row.off.sel .pl-tag { color: #ffe0e0; }
+.pl-working { float: right; color: #6a6f75; }
