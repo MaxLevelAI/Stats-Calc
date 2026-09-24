@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.vercel/
+.DS_Store
+Thumbs.db
+
+# Texas Instruments' guidebooks and everything extracted from them.
+# They are TI's copyrighted documents -- keep them local, do not redistribute.
+# research/FINDINGS.md and research/KEYPAD.md are my own notes and are kept;
+# they cite the source URLs so the research is reproducible.
+research/*
+!research/FINDINGS.md
+!research/KEYPAD.md

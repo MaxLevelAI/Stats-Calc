@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenCX CAS</title>
+<link rel="stylesheet" href="css/device.css">
+<link rel="stylesheet" href="css/screen.css">
+</head>
+<body>
+
+<div id="stage">
+  <div id="device">
+
+    <!-- ---------- faceplate ---------- -->
+    <div class="wordmark">
+      <span class="wm-open">Open</span><span class="wm-cx">CX</span>
+    </div>
+    <div class="cas-badge">CAS</div>
+
+    <!-- ---------- screen ---------- -->
+    <div id="screen-bezel">
+      <div id="screen">
+        <div id="screen-scale">
+          <div id="panel"><!-- 320x240 logical screen, owned by screen.js --></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- keypad ---------- -->
+    <div id="top-block">
+      <div class="col-left"></div>
+      <div class="touchpad-wrap">
+        <div class="tp-hint tp-hint-up"></div>
+        <div class="tp-hint tp-hint-left"></div>
+        <div class="tp-hint tp-hint-right"></div>
+        <div class="tp-hint tp-hint-down"></div>
+        <div id="touchpad">
+          <div class="tp-arrow tp-up"    data-key="up">&#9650;</div>
+          <div class="tp-arrow tp-down"  data-key="down">&#9660;</div>
+          <div class="tp-arrow tp-left"  data-key="left">&#9664;</div>
+          <div class="tp-arrow tp-right" data-key="right">&#9654;</div>
+          <div id="tp-center" data-key="click"></div>
+        </div>
+      </div>
+      <div class="col-right"></div>
+    </div>
+
+    <div class="block-divider"></div>
+
+    <div id="num-block"></div>
+    <div id="alpha-block"></div>
+
+    <div class="brand">OPEN CX</div>
+  </div>
+</div>
+
+<div id="hud">
+  <button data-act="zoom-out" title="Smaller">&minus;</button>
+  <button data-act="zoom-in" title="Larger">+</button>
+  <button data-act="fit" title="Fit to window">Fit</button>
+  <span class="hud-sep"></span>
+  <span id="hud-state"></span>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

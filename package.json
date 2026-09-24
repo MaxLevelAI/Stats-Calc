@@ -1,0 +1,11 @@
+{
+  "name": "opencx-cas",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Clean-room replica of the TI-Nspire CX CAS handheld",
+  "scripts": {
+    "start": "node build/serve.mjs",
+    "test": "node test/run.mjs"
+  }
+}

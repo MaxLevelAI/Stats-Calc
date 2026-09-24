@@ -1,0 +1,402 @@
+/* ------------------------------------------------------------------
+   Physical handheld chrome.
+   Device space is 843 x 1850 px (aspect 2.195, matching the real
+   190.0 x 86.4 mm body).  The whole device is scaled with a transform
+   to fit the viewport; everything inside uses fixed device pixels.
+   ------------------------------------------------------------------ */
+
+:root {
+  --dev-w: 843px;
+  --dev-h: 1850px;
+
+  --screen-x: 101px;
+  --screen-y: 161px;
+  --screen-w: 640px;   /* 320 logical * 2 */
+  --screen-h: 480px;   /* 240 logical * 2 */
+
+  --pad-l: 40px;       /* keypad content margins */
+  --pad-r: 40px;
+
+  --case: #1b1c20;
+  --case-hi: #34363c;
+  --key: #202226;
+  --key-hi: #3a3d44;
+  --key-grey: #8d9096;
+  --key-grey-hi: #b9bcc2;
+  --key-white: #e9eaec;
+  --ink: #f2f3f5;
+  --ink-sub: #a9adb4;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #0c0d10;
+  font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+#device {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--dev-w);
+  height: var(--dev-h);
+  transform-origin: center center;
+  border-radius: 46px 46px 72px 72px;
+  background:
+    radial-gradient(120% 60% at 50% 0%, #303237 0%, rgba(48,50,55,0) 55%),
+    linear-gradient(180deg, #24262b 0%, #1a1b1f 22%, #17181c 78%, #101114 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.14),
+    inset 0 -3px 6px rgba(0,0,0,.6),
+    0 30px 70px rgba(0,0,0,.75);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* thin bright rim so the body reads as moulded plastic */
+#device::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid rgba(255,255,255,.07);
+  pointer-events: none;
+}
+
+/* ---------------- faceplate branding ---------------- */
+
+.wordmark {
+  position: absolute;
+  left: 0; right: 0;
+  top: 84px;
+  text-align: center;
+  font-size: 40px;
+  letter-spacing: .5px;
+  color: #dfe1e5;
+  text-shadow: 0 1px 0 rgba(0,0,0,.8);
+}
+.wm-open { font-weight: 300; }
+.wm-cx   { font-weight: 400; margin-left: 10px; letter-spacing: 2px; }
+
+.cas-badge {
+  position: absolute;
+  right: 56px;
+  top: 78px;
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #eceef1;
+  text-shadow: 0 1px 0 rgba(0,0,0,.8);
+}
+
+.brand {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 30px;
+  text-align: center;
+  font-size: 13px;
+  letter-spacing: 2.5px;
+  color: #5c6067;
+}
+
+/* ---------------- screen ---------------- */
+
+#screen-bezel {
+  position: absolute;
+  left: calc(var(--screen-x) - 14px);
+  top: calc(var(--screen-y) - 14px);
+  width: calc(var(--screen-w) + 28px);
+  height: calc(var(--screen-h) + 28px);
+  border-radius: 6px;
+  background: linear-gradient(180deg, #0a0b0e, #05060a);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.06),
+    inset 0 3px 10px rgba(0,0,0,.9),
+    0 0 0 1px rgba(0,0,0,.8);
+  padding: 14px;
+}
+
+#screen {
+  position: relative;
+  width: var(--screen-w);
+  height: var(--screen-h);
+  overflow: hidden;
+  background: #000;
+}
+
+/* 320x240 logical panel, scaled up by exactly 2 */
+#screen-scale {
+  position: absolute;
+  left: 0; top: 0;
+  width: 320px;
+  height: 240px;
+  transform: scale(2);
+  transform-origin: 0 0;
+}
+
+#panel {
+  position: relative;
+  width: 320px;
+  height: 240px;
+  overflow: hidden;
+}
+
+/* faint glass sheen over the LCD */
+#screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(197deg, rgba(255,255,255,.055) 0%, rgba(255,255,255,0) 38%);
+}
+
+/* ---------------- generic key ---------------- */
+
+.cell { display: flex; flex-direction: column; align-items: stretch; }
+
+.sub {
+  height: 22px;
+  line-height: 22px;
+  text-align: center;
+  font-size: 15px;
+  color: var(--ink-sub);
+  white-space: nowrap;
+}
+.sub sup { font-size: .68em; }
+.sub .circ {
+  display: inline-block;
+  width: 17px; height: 17px;
+  line-height: 16px;
+  border: 1px solid var(--ink-sub);
+  border-radius: 50%;
+  font-size: 12px;
+}
+.sub .frac {
+  display: inline-block;
+  width: 16px; height: 12px;
+  border-top: 2px solid var(--ink-sub);
+  border-bottom: 2px solid var(--ink-sub);
+}
+
+.key {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  height: 58px;
+  border-radius: 9px;
+  background: linear-gradient(180deg, var(--key-hi) 0%, var(--key) 46%, #15161a 100%);
+  color: var(--ink);
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -2px 3px rgba(0,0,0,.55),
+    0 2px 3px rgba(0,0,0,.6);
+  transition: transform .04s linear, filter .04s linear;
+}
+.key:hover { filter: brightness(1.22); }
+.key.down  { transform: translateY(2px); filter: brightness(1.55); }
+
+.key sup { font-size: .58em; line-height: 0; position: relative; top: -.5em; }
+.key .caret { font-size: .5em; margin-left: 3px; align-self: flex-end; margin-bottom: 8px; }
+
+.key .gl { width: 30px; height: 20px; fill: currentColor; stroke: none; }
+.key .gl .st { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
+
+.key .home-ico {
+  display: inline-block;
+  width: 22px; height: 19px;
+  margin-right: 5px;
+  vertical-align: -3px;
+  background: currentColor;
+  clip-path: polygon(50% 0%, 100% 42%, 88% 42%, 88% 100%, 60% 100%, 60% 62%, 40% 62%, 40% 100%, 12% 100%, 12% 42%, 0% 42%);
+}
+
+.key.tone-white {
+  background: linear-gradient(180deg, #ffffff 0%, var(--key-white) 48%, #bdbfc4 100%);
+  color: #16171a;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9), inset 0 -2px 3px rgba(0,0,0,.25), 0 2px 3px rgba(0,0,0,.6);
+}
+.key.tone-grey {
+  background: linear-gradient(180deg, var(--key-grey-hi) 0%, var(--key-grey) 48%, #6b6e74 100%);
+  color: #15161a;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -2px 3px rgba(0,0,0,.35), 0 2px 3px rgba(0,0,0,.6);
+}
+
+/* a "pair" is two keys moulded as one split cap (= / trig, x / y, ...) */
+.key.pair-l { border-top-right-radius: 2px; border-bottom-right-radius: 2px; margin-right: 0; }
+.key.pair-r { border-top-left-radius: 2px;  border-bottom-left-radius: 2px;  margin-left: 0; }
+
+/* ---------------- top block ---------------- */
+
+#top-block {
+  position: absolute;
+  left: var(--pad-l);
+  right: var(--pad-r);
+  top: 703px;
+  height: 300px;
+  display: grid;
+  grid-template-columns: 118px 1fr 118px;
+  align-items: start;
+}
+
+.col-left, .col-right { display: flex; flex-direction: column; gap: 14px; }
+
+.col-left .key, .col-right .key { height: 56px; font-size: 24px; }
+
+.touchpad-wrap { position: relative; display: grid; place-items: center; height: 300px; }
+
+#touchpad {
+  position: relative;
+  width: 392px;
+  height: 248px;
+  border-radius: 40px;
+  background: linear-gradient(180deg, #303339 0%, #1d1f23 55%, #131417 100%);
+  box-shadow:
+    inset 0 0 0 5px rgba(150,180,220,.28),
+    inset 0 2px 0 rgba(255,255,255,.2),
+    0 3px 6px rgba(0,0,0,.65);
+}
+
+.tp-arrow {
+  position: absolute;
+  color: #cfd2d8;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 10px 16px;
+  line-height: 1;
+}
+.tp-arrow:hover { color: #fff; }
+.tp-arrow.down  { color: #7fc0ff; }
+.tp-up    { top: 8px;  left: 50%; transform: translateX(-50%); }
+.tp-down  { bottom: 8px; left: 50%; transform: translateX(-50%); }
+.tp-left  { left: 8px;  top: 50%; transform: translateY(-50%); }
+.tp-right { right: 8px; top: 50%; transform: translateY(-50%); }
+
+#tp-center {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 108px; height: 92px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #34373d, #1a1c20);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 2px 4px rgba(0,0,0,.6);
+  cursor: pointer;
+}
+/* the little grab-hand / click mark moulded into the centre button */
+#tp-center::before,
+#tp-center::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #b9bec6;
+}
+#tp-center::before {
+  top: 20px;
+  width: 15px; height: 15px;
+  clip-path: polygon(38% 0, 62% 0, 62% 42%, 100% 26%, 100% 74%, 50% 100%, 0 74%, 0 34%);
+}
+#tp-center::after {
+  bottom: 18px;
+  width: 17px; height: 17px;
+  clip-path: polygon(46% 0,54% 0,54% 30%,46% 30%, 100% 46%,100% 54%,70% 54%,70% 46%, 46% 70%,54% 70%,54% 100%,46% 100%, 0 46%,0 54%,30% 54%,30% 46%);
+}
+#tp-center:hover { filter: brightness(1.25); }
+#tp-center.down  { filter: brightness(1.6); transform: translate(-50%, -50%) scale(.97); }
+
+/* faceplate hints printed around the touchpad */
+.tp-hint {
+  position: absolute;
+  color: var(--ink-sub);
+  font-size: 15px;
+  pointer-events: none;
+}
+.tp-hint-up    { top: 6px;  left: 50%; transform: translateX(-50%); }
+.tp-hint-down  { bottom: 4px; left: 50%; transform: translateX(-50%); }
+.tp-hint-left  { left: -34px;  top: 50%; transform: translateY(-50%); }
+.tp-hint-right { right: -34px; top: 50%; transform: translateY(-50%); }
+
+.tp-hint-up::after    { content: "\2197\25A6"; }
+.tp-hint-down::after  { content: "\25B1\2713"; }
+.tp-hint-left::after  { content: "\25C0\25AF"; }
+.tp-hint-right::after { content: "\25AF\25B6"; }
+
+.block-divider {
+  position: absolute;
+  left: 0; right: 0;
+  top: 1004px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.10) 12%, rgba(255,255,255,.10) 88%, rgba(255,255,255,0));
+}
+
+/* ---------------- numeric block ---------------- */
+
+#num-block {
+  position: absolute;
+  left: var(--pad-l);
+  right: var(--pad-r);
+  top: 1017px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 14px;
+}
+
+#num-block .cell { padding: 0 6px; }
+#num-block .cell.tight-l { padding-right: 0; }
+#num-block .cell.tight-r { padding-left: 0; }
+#num-block .cell.narrow  { padding: 0 20px; }
+
+/* ---------------- alpha block ---------------- */
+
+#alpha-block {
+  position: absolute;
+  left: var(--pad-l);
+  right: var(--pad-r);
+  top: 1508px;
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 9px 7px;
+}
+
+#alpha-block .key { height: 42px; font-size: 20px; border-radius: 7px; }
+#alpha-block .key .gl { width: 22px; height: 15px; }
+
+/* ---------------- on-page controls (not part of the handheld) ------- */
+
+#hud {
+  position: fixed;
+  right: 14px; bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #6e737b;
+  z-index: 20;
+}
+#hud button {
+  background: #1d1f24;
+  color: #b7bcc4;
+  border: 1px solid #2c2f36;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+#hud button:hover { background: #262a31; color: #e6e9ee; }
+.hud-sep { width: 1px; height: 16px; background: #2c2f36; }
+#hud-state { min-width: 96px; }
