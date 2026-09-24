@@ -16,6 +16,7 @@ const LITERAL = {
   d5: '5', d6: '6', d7: '7', d8: '8', d9: '9',
   dot: '.', comma: ',', plus: '+', minus: '-', mul: '·', div: '/',
   lparen: '(', rparen: ')', equals: '=', space: ' ',
+  lbracket: '[', rbracket: ']', lbrace: '{', rbrace: '}',
   pi: 'π', EE: 'E', neg: '−',
 };
 
@@ -35,7 +36,7 @@ const CTRL_TEMPLATE = {
   div: () => ({ t: 'frac', num: M.row(), den: M.row() }),
 };
 
-const CTRL_TEXT = { ex: 'ln(', lparen: '[', rparen: '{', neg: 'ans' };
+const CTRL_TEXT = { ex: 'ln(', lparen: '[|]', rparen: '{|}', neg: 'ans' };
 
 export function makeCalculatorView(opts = {}) {
   const history = []; // { input, output, error }

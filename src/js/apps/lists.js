@@ -250,6 +250,7 @@ export function makeListsView() {
         d0: '0', d1: '1', d2: '2', d3: '3', d4: '4', d5: '5', d6: '6', d7: '7', d8: '8', d9: '9',
         dot: '.', comma: ',', plus: '+', minus: '-', mul: '*', div: '/', caret: '^',
         lparen: '(', rparen: ')', equals: '=', space: ' ',
+        lbracket: '[', rbracket: ']', lbrace: '{', rbrace: '}',
       };
       let ch = LITERAL[id];
       if (!ch && def?.letter) ch = shift ? def.letter : def.letter.toLowerCase();

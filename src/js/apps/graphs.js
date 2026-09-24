@@ -399,6 +399,7 @@ export function makeGraphsView() {
         d0: '0', d1: '1', d2: '2', d3: '3', d4: '4', d5: '5', d6: '6', d7: '7', d8: '8', d9: '9',
         dot: '.', comma: ',', plus: '+', minus: '-', mul: '·', div: '/',
         lparen: '(', rparen: ')', space: ' ', pi: 'π', neg: '−', equals: '=',
+        lbracket: '[', rbracket: ']', lbrace: '{', rbrace: '}',
       };
 
       if (ctrl && CTRL_TEMPLATE[id]) { cur = M.insertNode(cur, CTRL_TEMPLATE[id]()); compile(active); refresh(); return true; }

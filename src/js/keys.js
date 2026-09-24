@@ -122,6 +122,9 @@ export const KBD_MAP = {
   5: 'd5', 6: 'd6', 7: 'd7', 8: 'd8', 9: 'd9',
   '+': 'plus', '-': 'minus', '*': 'mul', '/': 'div', '^': 'caret',
   '(': 'lparen', ')': 'rparen', '.': 'dot', ',': 'comma', '=': 'equals',
+  // brackets and braces have no key of their own on the handheld (they are
+  // ctrl-( and ctrl-)), but a real keyboard has them, so accept them directly
+  '[': 'lbracket', ']': 'rbracket', '{': 'lbrace', '}': 'rbrace',
   ' ': 'space', F1: 'menu', F2: 'doc', F3: 'on', F4: 'scratchpad',
 };
 
