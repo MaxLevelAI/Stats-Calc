@@ -122,8 +122,17 @@ export function fmt(e, prec = 0) {
       return `${e.name}(${e.args.map((a) => fmt(a, 0)).join(',')})`;
     }
 
-    case 'list':
+    case 'list': {
+      // a list whose entries are equal-length lists is a matrix, and TI prints
+      // matrices in square brackets rather than braces
+      const isMatrix = e.items.length > 0 && e.items.every(
+        (r) => r.k === 'list' && r.items.length > 0 && r.items.length === e.items[0].items.length
+      );
+      if (isMatrix) {
+        return `[${e.items.map((r) => `[${r.items.map((v) => fmt(v, 0)).join(',')}]`).join(',')}]`;
+      }
       return `{${e.items.map((i) => fmt(i, 0)).join(',')}}`;
+    }
 
     case 'rel':
       return `${fmt(e.l, 0)}${e.op}${fmt(e.r, 0)}`;

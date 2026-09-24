@@ -79,7 +79,7 @@ build/serve.mjs       dev server
 
 ## What works, and what doesn't
 
-**93 of the 289 commands** in TI's CAS Reference Guide are implemented. The
+**133 of the 289 commands** in TI's CAS Reference Guide are implemented. The
 rest are listed in the Catalog but marked **not built**, and calling one says
 so rather than quietly echoing the expression back:
 
@@ -95,6 +95,12 @@ Complete and usable today:
   zeros, derivative, integral, limit, Taylor
 - **all of AP Statistics**: 18 distributions, OneVar/TwoVar, 9 regressions,
   7 confidence intervals, 11 hypothesis tests, and the wizards for them
+- **Matrix & Vector**: determinants, ref/rref, inverse, simult, eigenvalues and
+  eigenvectors, the characteristic polynomial, row operations, dot and cross
+  products
+- **Finance**: the five TVM functions, amortization and balances, npv, irr,
+  mirr, interest conversion, days between dates
+- **user functions**: `Define f(x)=x^2+1`, which the CAS can then differentiate
 - six applications, the document model, saving, and Settings
 
 Not built:
@@ -102,9 +108,8 @@ Not built:
 | | |
 |---|---|
 | Data Collection | the whole application (needs physical sensors) |
-| Matrix & Vector | 28 commands -- `det`, `rref`, eigenvalues, decompositions |
-| Finance | 21 commands -- TVM, amortization, cash flows |
 | Programming | Program Editor, Libraries, `If`/`For`/`While`/`Func` |
+| Complex numbers | `conj`, `real`, `imag`, polar/rectangular |
 | Graphs | only `f(x)=`; no parametric, polar, sequence, diff-eq or conics |
 | 3D Graphs | not started |
 | Geometry | Locus, Compass, Measurement Transfer, Ellipse, Parabola |

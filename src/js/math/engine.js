@@ -8,6 +8,8 @@ import { Rat } from './rational.js';
 import * as S from './sym.js';
 import * as C from './cas.js';
 import * as D from './dist.js';
+import * as MX from './matrix.js';
+import * as FIN from './finance.js';
 import { COMMANDS, COMMAND_IMPL } from './commands.js';
 import { CATALOG } from './catalog.js';
 import { fmt, fmtFloat } from './format.js';
@@ -43,6 +45,12 @@ export function isImplemented(name) {
 
 /** User variables, cleared by ClearAZ / DelVar. */
 export const vars = new Map();
+
+/** User functions from Define / := , stored as parameters plus an AST body. */
+export const userFns = new Map();
+
+// Parameter bindings while a user function is being expanded.
+const scopes = [];
 
 /** The previous result, reachable as `ans` (ctrl + (-) on the keypad). */
 let lastAns = null;
@@ -160,6 +168,7 @@ function parse(tokens, state) {
     if (tk.t === 'str') return { n: 'str', s: tk.text };
 
     if (tk.t === 'id') {
+      if (/^define$/i.test(tk.text)) return { n: 'define', body: expr(0) };
       if (at('(')) { next(); return { n: 'call', name: tk.text, args: args(')') }; }
       // statistics commands take bare comma-separated arguments: OneVar {1,2,3}
       if (COMMANDS.has(tk.text.toLowerCase())) {
@@ -240,6 +249,9 @@ function build(node) {
 
     case 'var': {
       const name = node.name;
+      for (let i = scopes.length - 1; i >= 0; i -= 1) {
+        if (name in scopes[i]) return scopes[i][name];
+      }
       if (KEYWORDS.has(name.toLowerCase()) && !vars.has(name)) throw notBuilt(name);
       if (name === 'ans') {
         if (!lastAns) throw new Error('No previous answer');
@@ -258,6 +270,7 @@ function build(node) {
 
       if (op === ':=' || op === '→') {
         const [target, value] = op === ':=' ? [node.a, node.b] : [node.b, node.a];
+        if (target.n === 'call') return defineFrom({ n: 'bin', op: '=', a: target, b: value });
         if (target.n !== 'var') throw new Error('Invalid assignment');
         const v = build(value);
         vars.set(target.name, v);
@@ -282,9 +295,24 @@ function build(node) {
       return runCommand(fn, node.args.map(build));
     }
 
+    case 'define': return defineFrom(node.body);
+
     case 'call': {
       const name = node.name;
       const lower = name.toLowerCase();
+
+      // a user function expands with its parameters bound to the arguments
+      const uf = userFns.get(lower);
+      if (uf) {
+        if (node.args.length !== uf.params.length) {
+          throw new Error(`${name} expects ${uf.params.length} argument${uf.params.length === 1 ? '' : 's'}`);
+        }
+        const bound = {};
+        uf.params.forEach((pn, i) => { bound[pn] = build(node.args[i]); });
+        if (scopes.length > 24) throw new Error('Too many nested calls');
+        scopes.push(bound);
+        try { return build(uf.body); } finally { scopes.pop(); }
+      }
       const fn = FN[name] ?? FN[lower];
       if (fn) return fn(node.args.map(build), node);
       // A documented command we have not built must say so. Anything else is
@@ -296,6 +324,32 @@ function build(node) {
     default:
       throw new Error('Syntax error');
   }
+}
+
+// A command's acknowledgement prints bare; a string literal keeps its quotes.
+const DONE = { k: 'text', s: 'Done', bare: true };
+
+/** Define f(x)=... or Define a=...; returns TI's "Done". */
+function defineFrom(body) {
+  if (!body || body.n !== 'bin' || body.op !== '=') {
+    throw new Error('Define expects name(args)=expression');
+  }
+  const target = body.a;
+
+  if (target.n === 'call') {
+    const params = target.args.map((a) => {
+      if (a.n !== 'var') throw new Error('Parameters must be names');
+      return a.name;
+    });
+    userFns.set(target.name.toLowerCase(), { params, body: body.b, name: target.name });
+    return DONE;
+  }
+
+  if (target.n === 'var') {
+    vars.set(target.name, build(body.b));
+    return DONE;
+  }
+  throw new Error('Define expects name(args)=expression');
 }
 
 /* ============================== function library ============================== */
@@ -312,6 +366,45 @@ const asInt = (e) => {
   return v;
 };
 const optNum = (e, dflt) => (e === undefined ? dflt : asNumber(e));
+
+/** A list of equal-length lists, read as a matrix of numbers. */
+function mat(e) {
+  if (!e || e.k !== 'list') throw new Error('Expected a matrix');
+  const m = e.items.map((r) => (r.k === 'list' ? r.items.map(asNumber) : [asNumber(r)]));
+  if (!MX.isMatrix(m)) throw new Error('Rows must be the same length');
+  return m;
+}
+
+/** A flat list, read as a vector; a 1xN or Nx1 matrix counts too. */
+function vec(e) {
+  if (!e || e.k !== 'list') throw new Error('Expected a vector');
+  if (e.items[0]?.k === 'list') {
+    const m = mat(e);
+    return MX.rows(m) === 1 ? m[0] : m.map((r) => r[0]);
+  }
+  return e.items.map(asNumber);
+}
+
+/** Whole numbers stay exact; anything else marks the result approximate. */
+const numOrFlt = (v) => (Number.isInteger(v) ? S.Num(v) : flt(v));
+
+const toMat = (m) => S.List(m.map((r) => S.List(r.map(numOrFlt))));
+
+/** Money is inherently decimal, and TI reports it to the cent. */
+const round2 = (v) => Math.round(v * 100) / 100;
+const money = (v) => {
+  if (!Number.isFinite(v)) throw new Error('No solution');
+  return flt(round2(v));
+};
+
+/** Read the trailing optional PpY / CpY / PmtAt arguments TVM shares. */
+const fin = (a, from) => {
+  const req = a.slice(0, from).map(asNumber);
+  const ppy = a[from] !== undefined ? asNumber(a[from]) : 12;
+  const cpy = a[from + 1] !== undefined ? asNumber(a[from + 1]) : ppy;
+  const at = a[from + 2] !== undefined ? asNumber(a[from + 2]) : 0;
+  return [...req, ppy, cpy, at];
+};
 const asList = (e) => (e.k === 'list' ? e.items : [e]);
 const nums = (e) => asList(e).map(asNumber);
 
@@ -515,6 +608,89 @@ const FN = {
     return S.List(out);
   },
 
+  /* ---- finance (argument order per the CAS Reference Guide) ---- */
+  tvmfv: (a) => money(FIN.tvmFV(...fin(a, 4))),
+  tvmpv: (a) => money(FIN.tvmPV(...fin(a, 4))),
+  tvmpmt: (a) => money(FIN.tvmPmt(...fin(a, 4))),
+  tvmn: (a) => money(FIN.tvmN(...fin(a, 4))),
+  tvmi: (a) => money(FIN.tvmI(...fin(a, 4))),
+
+  bal: (a) => money(FIN.bal(asNumber(a[0]), asNumber(a[1]), asNumber(a[2]), asNumber(a[3]),
+    a[4] ? asNumber(a[4]) : null, ...fin(a.slice(5), 0))),
+  amorttbl: (a) => toMat(FIN.amortTbl(asInt(a[0]), asNumber(a[1]), asNumber(a[2]), asNumber(a[3]),
+    a[4] ? asNumber(a[4]) : null, ...fin(a.slice(5), 0)).map((r) => r.map(round2))),
+
+  npv: (a) => money(FIN.npv(asNumber(a[0]), asNumber(a[1]), nums(a[2]), a[3] ? nums(a[3]) : null)),
+  irr: (a) => money(FIN.irr(asNumber(a[0]), nums(a[1]), a[2] ? nums(a[2]) : null)),
+  mirr: (a) => money(FIN.mirr(asNumber(a[0]), asNumber(a[1]), asNumber(a[2]), nums(a[3]),
+    a[4] ? nums(a[4]) : null)),
+
+  eff: (a) => money(FIN.eff(asNumber(a[0]), asNumber(a[1]))),
+  nom: (a) => money(FIN.nom(asNumber(a[0]), asNumber(a[1]))),
+  dbd: (a) => num(FIN.dbd(asNumber(a[0]), asNumber(a[1]))),
+
+  /* ---- matrices and vectors ---- */
+  det: (a) => numOrFlt(MX.det(mat(a[0]))),
+  ref: (a) => toMat(MX.ref(mat(a[0]))),
+  rref: (a) => toMat(MX.rref(mat(a[0]))),
+  identity: (a) => toMat(MX.identity(asInt(a[0]))),
+  newmat: (a) => toMat(MX.newMat(asInt(a[0]), asInt(a[1]))),
+  diag: (a) => {
+    const v = a[0];
+    const m = v.k === 'list' && v.items[0]?.k === 'list' ? mat(v) : null;
+    return m ? S.List(MX.diag(m).map(flt)) : toMat(MX.diag(vec(v)));
+  },
+  transpose: (a) => toMat(MX.transpose(mat(a[0]))),
+  augment: (a) => {
+    const x = a[0];
+    const y = a[1];
+    const bothMat = x.k === 'list' && x.items[0]?.k === 'list';
+    if (bothMat) return toMat(MX.augment(mat(x), mat(y)));
+    return S.List([...asList(x), ...asList(y)]);
+  },
+  colaugment: (a) => toMat(MX.colAugment(mat(a[0]), mat(a[1]))),
+  submat: (a) => toMat(MX.subMat(mat(a[0]),
+    a[1] ? asInt(a[1]) : undefined, a[2] ? asInt(a[2]) : undefined,
+    a[3] ? asInt(a[3]) : undefined, a[4] ? asInt(a[4]) : undefined)),
+  simult: (a) => toMat(MX.simult(mat(a[0]), a[1].k === 'list' && a[1].items[0]?.k === 'list' ? mat(a[1]) : vec(a[1]))),
+  rowdim: (a) => num(MX.rows(mat(a[0]))),
+  coldim: (a) => num(MX.cols(mat(a[0]))),
+  trace: (a) => numOrFlt(MX.trace(mat(a[0]))),
+  norm: (a) => numOrFlt(MX.norm(mat(a[0]))),
+  rownorm: (a) => numOrFlt(MX.rowNorm(mat(a[0]))),
+  colnorm: (a) => numOrFlt(MX.colNorm(mat(a[0]))),
+  rowswap: (a) => toMat(MX.rowSwap(mat(a[0]), asInt(a[1]), asInt(a[2]))),
+  rowadd: (a) => toMat(MX.rowAdd(mat(a[0]), asInt(a[1]), asInt(a[2]))),
+  mrow: (a) => toMat(MX.mRow(asNumber(a[0]), mat(a[1]), asInt(a[2]))),
+  mrowadd: (a) => toMat(MX.mRowAdd(asNumber(a[0]), mat(a[1]), asInt(a[2]), asInt(a[3]))),
+  eigvl: (a) => S.List(MX.eigenvalues(mat(a[0])).map(numOrFlt)),
+  eigvc: (a) => toMat(MX.eigenvectors(mat(a[0]))),
+  charpoly: (a, node) => {
+    const c = MX.charPoly(mat(a[0]));
+    const name = node.args[1] ? (node.args[1].name ?? 'x') : 'x';
+    return S.add(...c.map((k, i) => S.mul(flt(k), S.pow(S.Sym(name), num(i)))));
+  },
+  randmat: (a) => toMat(MX.newMat(asInt(a[0]), asInt(a[1])).map((r) => r.map(() => Math.floor(Math.random() * 19) - 9))),
+  constructmat: (a, node) => {
+    const rows = asInt(a[3]);
+    const colsN = asInt(a[4]);
+    const rv = node.args[1].name ?? 'i';
+    const cv = node.args[2].name ?? 'j';
+    const out = [];
+    for (let i = 1; i <= rows; i += 1) {
+      const row = [];
+      for (let j = 1; j <= colsN; j += 1) {
+        row.push(C.evalNum(C.substitute(C.substitute(a[0], rv, num(i)), cv, num(j))));
+      }
+      out.push(row);
+    }
+    return toMat(out);
+  },
+
+  dotp: (a) => numOrFlt(MX.dotP(vec(a[0]), vec(a[1]))),
+  crossp: (a) => S.List(MX.crossP(vec(a[0]), vec(a[1])).map(numOrFlt)),
+  unitv: (a) => S.List(MX.unitV(vec(a[0])).map(flt)),
+
   /* ---- distributions (argument order per the CAS Reference Guide) ---- */
   normpdf: (a) => mapUn(a[0], (v) => flt(D.normPdf(asNumber(v), optNum(a[1], 0), optNum(a[2], 1)))),
   normcdf: (a) => flt(D.normCdf(asNumber(a[0]), asNumber(a[1]), optNum(a[2], 0), optNum(a[3], 1))),
@@ -564,6 +740,24 @@ FN.d = FN.derivative; FN.deriv = FN.derivative;
 FN.nint = FN.integral; FN.nderiv = FN.derivative;
 
 // The handheld spells the chi-square family with the Greek letter.
+FN.matlist = (a) => S.List(mat(a[0]).flat().map(flt));
+FN.listmat = (a, node) => {
+  const v = vec(a[0]);
+  const c = node.args[1] ? asInt(a[1]) : v.length;
+  const out = [];
+  for (let i = 0; i < v.length; i += c) out.push(v.slice(i, i + c));
+  return toMat(out);
+};
+FN['Σint'] = (a) => money(FIN.sumInt(asNumber(a[0]), asNumber(a[1]), asNumber(a[2]),
+  asNumber(a[3]), asNumber(a[4]), a[5] ? asNumber(a[5]) : null));
+FN['Σprn'] = (a) => money(FIN.sumPrn(asNumber(a[0]), asNumber(a[1]), asNumber(a[2]),
+  asNumber(a[3]), asNumber(a[4]), a[5] ? asNumber(a[5]) : null));
+FN.sumint = FN['Σint'];
+FN.sumprn = FN['Σprn'];
+
+FN['list►mat'] = FN.listmat;
+FN['mat►list'] = FN.matlist;
+
 FN['χ²pdf'] = FN.chi2pdf;
 FN['χ²cdf'] = FN.chi2cdf;
 FN['invχ²'] = FN.invchi2;
@@ -699,16 +893,30 @@ export function compileDerivative(src, varName = 'x') {
 }
 
 function render(e) {
-  if (e.k === 'text') return `"${e.s}"`;
+  if (e.k === 'text') return e.bare ? e.s : `"${e.s}"`;
   if (e.k === 'statresults') {
     return e.rows.map(([name, v]) => `${name}\t${render(v)}`).join('\n');
   }
   if (e.k === 'float') return withDot(fmtFloat(e.x));
-  if (e.k === 'list') return `{${e.items.map(render).join(',')}}`;
+  if (e.k === 'list') {
+    // matrices print in square brackets, plain lists in braces
+    if (isMatrixNode(e)) {
+      const rowsOut = e.items.map((r) => `[${r.items.map(render).join(',')}]`);
+      return `[${rowsOut.join(',')}]`;
+    }
+    return `{${e.items.map(render).join(',')}}`;
+  }
   if (e.k === 'rel' && (e.l.k === 'float' || e.r.k === 'float')) {
     return `${render(e.l)}${e.op}${render(e.r)}`;
   }
   return fmt(e, 0);
+}
+
+/** A list of equal-length, non-empty lists is a matrix. */
+export function isMatrixNode(e) {
+  return e && e.k === 'list' && e.items.length > 0 && e.items.every(
+    (r) => r && r.k === 'list' && r.items.length > 0 && r.items.length === e.items[0].items.length
+  );
 }
 
 /** The handheld marks approximate results with a trailing dot: 3 becomes "3." */
