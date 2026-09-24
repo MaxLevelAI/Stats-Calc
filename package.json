@@ -6,6 +6,8 @@
   "description": "Clean-room replica of the TI-Nspire CX CAS handheld",
   "scripts": {
     "start": "node build/serve.mjs",
+    "build": "node build/build.mjs",
+    "preview": "node -e \"process.env.SERVE_DIR='dist';process.env.PORT='5174';import('./build/serve.mjs')\"",
     "test": "node test/run.mjs"
   }
 }

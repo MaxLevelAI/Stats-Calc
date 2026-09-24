@@ -17,10 +17,30 @@ CX II (different keypad, different home screen), and the community emulators
 ## Running it
 
 ```bash
-node build/serve.mjs
+npm start
 ```
 
-Then open <http://localhost:5173>. Use the on-screen keypad, or your real keyboard
+Then open <http://localhost:5173>. To check the production build the way a
+host serves it:
+
+```bash
+npm run build && npm run preview
+```
+
+## Deploying
+
+It is a static site with no server-side code, so any static host works.
+`vercel.json` builds with `node build/build.mjs` (which copies `src/` to
+`dist/`) and serves `dist/`.
+
+Saved documents live in the browser's localStorage, so they are per browser
+and per device -- they survive refreshes and reboots, but they do not follow
+you between machines.
+
+**The `research/` guidebooks are deliberately not committed.** They are TI's
+copyrighted documents; `.gitignore` keeps them local. Only `FINDINGS.md` and
+`KEYPAD.md`, which are my own notes, are tracked, and they cite the source
+URLs so the research can be reproduced. Use the on-screen keypad, or your real keyboard
 (letters, digits, operators, arrows, Enter, Esc, Tab, Backspace).
 
 ## Fidelity rules
